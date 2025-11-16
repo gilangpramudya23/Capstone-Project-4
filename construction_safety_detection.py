@@ -6,24 +6,19 @@ import cv2
 import numpy as np
 from PIL import Image
 
-# ===========================
-# PAGE CONFIG
-# ===========================
 st.set_page_config(
     page_title="Construction Safety Detection - YOLO",
     page_icon="🦺",
     layout="wide"
 )
 
-st.title("🦺 Construction Safety Detection System (YOLOv12)")
-st.markdown("Upload an image to detect safety equipment violations")
+st.title("🦺 Construction Safety Detection System")
+st.markdown("Upload an image to detect safety equipment")
 
-# ===========================
-# LOAD MODEL (Cached)
-# ===========================
+# LOAD THE MODEL
+
 @st.cache_resource
 def load_yolo_model():
-    """Load YOLO model (runs only once)"""
     with st.spinner('🔄 Loading YOLO model... Please wait'):
         model = YOLO('best.pt')
     st.success('✅ Model loaded successfully!')
@@ -32,11 +27,9 @@ def load_yolo_model():
 # Load model
 model = load_yolo_model()
 
-# ===========================
-# FUNCTION: COUNT SAFETY EQUIPMENT
-# ===========================
+# FUNCTION TO COUNT SAFETY EQUIPMENT
 def count_safety_equipment(detections, class_names):
-    """Count helmets, vests, and violations"""
+    """Count helmets and vests"""
     
     detection_counts = Counter()
     
@@ -59,19 +52,12 @@ def count_safety_equipment(detections, class_names):
         'person': person_count
     }
 
-# ===========================
-# FUNCTION: ANNOTATE IMAGE (NO SUMMARY OVERLAY)
+# FUNCTION TO ANNOTATE IMAGE
 # ===========================
 def annotate_image(image, detections):
-    """Add only bounding boxes and labels (no summary overlay)"""
-    
-    # Get class names
     class_names = model.names
-    
-    # Annotate with boxes and labels
     box_annotator = sv.BoxAnnotator(thickness=2)
     label_annotator = sv.LabelAnnotator(text_scale=0.5, text_thickness=2)
-    
     annotated_image = image.copy()
     annotated_image = box_annotator.annotate(scene=annotated_image, detections=detections)
     
@@ -81,17 +67,12 @@ def annotate_image(image, detections):
     
     return annotated_image
 
-# ===========================
-# FUNCTION: RUN DETECTION (NO THRESHOLD PARAMETER)
-# ===========================
+
+# FUNCTION TO RUN DETECTION
 def detect_objects(image):
-    """Run YOLO detection on uploaded image"""
-    
     # Convert PIL to numpy array (BGR for OpenCV)
     image_np = np.array(image)
     image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
-    
-    # Run YOLO inference (using default confidence threshold from model)
     results = model(image_bgr, verbose=False)[0]
     
     # Convert to supervision format
@@ -101,18 +82,14 @@ def detect_objects(image):
     class_names = model.names
     counts = count_safety_equipment(detections, class_names)
     
-    # Annotate image (no summary overlay)
+    # Annotate image
     annotated_image = annotate_image(image_bgr, detections)
-    
-    # Convert back to RGB for display
     annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
     
     return annotated_image_rgb, detections, counts
 
-# ===========================
-# SIDEBAR: MODEL INFO (NO THRESHOLD SLIDER)
-# ===========================
-st.sidebar.header("📊 Model Info")
+# SIDEBAR INFO
+st.sidebar.header("Model Info")
 st.sidebar.info(
     f"""
     **Model:** YOLOv12
@@ -121,21 +98,19 @@ st.sidebar.info(
     **Detects:**
     - 🪖 Helmets / Hard hats
     - 🦺 Safety vests
-    - ❌ Violations
+    - ❌ Violations of safety equipment
     """
 )
 
 # Show class names
-with st.sidebar.expander("🏷️ Class Names"):
+with st.sidebar.expander("Class Names"):
     for idx, name in model.names.items():
         st.text(f"{idx}: {name}")
 
-# ===========================
-# MAIN APP: IMAGE UPLOAD
-# ===========================
+# IMAGE UPLOAD
 
 uploaded_file = st.file_uploader(
-    "📤 Upload Construction Site Image",
+    "Upload Construction Site Image",
     type=['jpg', 'jpeg', 'png'],
     help="Upload an image to detect safety equipment"
 )
@@ -159,11 +134,9 @@ if uploaded_file is not None:
         st.subheader("🎯 Detection Results")
         st.image(annotated_image, use_container_width=True)
     
-    # ===========================
-    # DISPLAY DETAILED COUNTS
-    # ===========================
+    # DISPLAY COUNTS
     st.markdown("---")
-    st.subheader("📊 Detection Summary")
+    st.subheader("Detection Summary")
     
     # Metrics in columns
     metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
@@ -251,12 +224,13 @@ else:
     # Show instructions when no image uploaded
     st.info("👆 Upload an image to start detection")
     
-    st.markdown("### 🎯 How to use:")
+    st.markdown("### How to use:")
     st.markdown("""
     1. Click **'Browse files'** button above
     2. Select a construction site image (JPG, JPEG, or PNG)
     3. Wait for YOLO to process (~1-2 seconds)
     4. View detected objects and safety compliance metrics
+    5. Check which employees are wearing safety gear and which aren’t
     """)
     
     st.markdown("### ✨ Features:")
@@ -284,4 +258,5 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
